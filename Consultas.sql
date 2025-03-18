@@ -197,7 +197,7 @@ ORDER BY "Año", "Mes";
 
 SELECT AVG(p.AMOUNT) AS "Promedio", 
 	stddev(p.AMOUNT) AS "Desviación_estándar", 
-	variance(p.AMOUNT) AS "Desviación_estándar" 
+	variance(p.AMOUNT) AS "Varianza" 
 FROM PAYMENT AS p;
 
 --27. ¿Qué películas se alquilan por encima del precio medio?
@@ -361,16 +361,13 @@ CROSS JOIN CATEGORY AS c;
 
 --45. Encuentra los actores que han participado en películas de la categoría 'Action'.
 
-SELECT concat(a.FIRST_NAME,' ',a.LAST_NAME) AS "Actor/Actriz"
+SELECT DISTINCT(concat(a.FIRST_NAME,' ',a.LAST_NAME)) AS "Actor/Actriz"
 FROM ACTOR AS a
-LEFT JOIN FILM_ACTOR AS fa ON a.ACTOR_ID = fa.ACTOR_ID
-LEFT JOIN FILM AS f ON fa.FILM_ID = f.FILM_ID
-WHERE f.FILM_ID IN (
-					SELECT f.FILM_ID
-					FROM FILM AS f
-					JOIN FILM_CATEGORY AS fc ON f.FILM_ID = fc.FILM_ID
-					JOIN CATEGORY AS c ON fc.CATEGORY_ID = c.CATEGORY_ID
-					WHERE c."name" ILIKE 'Action')
+JOIN FILM_ACTOR AS fa ON a.ACTOR_ID = fa.ACTOR_ID
+JOIN FILM AS f ON fa.FILM_ID = f.FILM_ID
+JOIN FILM_CATEGORY AS fc ON f.FILM_ID = fc.FILM_ID
+JOIN CATEGORY AS c ON fc.CATEGORY_ID = c.CATEGORY_ID 
+WHERE c."name" ILIKE 'Action'
 ORDER BY "Actor/Actriz";
 
 --46. Encuentra todos los actores que no han participado en películas.
@@ -402,11 +399,12 @@ ORDER BY "Cantidad películas" DESC;
 
 --49. Calcula el número total de alquileres realizados por cada cliente.
 
-SELECT p.CUSTOMER_ID,
-		COUNT(p.RENTAL_ID) AS "Número_Total_Alquileres"
-FROM PAYMENT AS p
-GROUP BY p.CUSTOMER_ID
+SELECT r.CUSTOMER_ID,
+		COUNT(r.RENTAL_ID) AS "Número_Total_Alquileres"
+FROM RENTAL AS r
+GROUP BY r.CUSTOMER_ID
 ORDER BY "Número_Total_Alquileres" DESC;
+
 
 --50. Calcula la duración total de las películas en la categoría 'Action'.
 
@@ -511,21 +509,18 @@ ORDER BY "Apellido","Nombre";
 --56. Encuentra el nombre y apellido de los actores que no han actuado en ninguna 
 --    película de la categoría ‘Music’.
 
-WITH peliculas_categoria_Music AS (
-	SELECT f.FILM_ID
-	FROM FILM AS f
-	JOIN FILM_CATEGORY AS fc ON f.FILM_ID = fc.FILM_ID
-	JOIN CATEGORY AS c ON fc.CATEGORY_ID = c.CATEGORY_ID
-	WHERE c.name = 'Music'
+WITH actores_en_music AS (
+    SELECT DISTINCT(fa.actor_id)
+    FROM FILM_ACTOR AS fa
+    JOIN FILM AS f ON fa.FILM_ID = f.FILM_ID
+    JOIN FILM_CATEGORY AS fc ON f.film_id = fc.film_id
+    JOIN CATEGORY AS c ON fc.category_id = c.category_id
+    WHERE c.name = 'Music'
 )
-SELECT DISTINCT concat(a.FIRST_NAME,' ',a.LAST_NAME) AS "Actor/Actriz",
-				fa.FILM_ID
-FROM ACTOR AS a 
-LEFT JOIN FILM_ACTOR AS fa ON a.ACTOR_ID = fa.ACTOR_ID 
-WHERE fa.FILM_ID NOT IN ( 
-						SELECT *
-						FROM peliculas_categoria_Music
-);
+SELECT DISTINCT(concat(a.FIRST_NAME,' ',a.LAST_NAME)) AS "Actor/Actriz"
+FROM actor a
+WHERE a.actor_id NOT IN (SELECT actor_id FROM actores_en_music)
+ORDER BY "Actor/Actriz";
 
 --57. Encuentra el título de todas las películas que fueron alquiladas por más de 8 días.
 
